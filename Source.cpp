@@ -5,6 +5,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <iostream>
+#include <time.h>
 #include "Shader.h"
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
@@ -112,9 +113,19 @@ int main() {
     //unsigned int transformLocation = glGetUniformLocation(newShader.ID, "trans");
     //glUniformMatrix4fv(transformLocation, 1, GL_FALSE, glm::value_ptr(trans));
 
-    float array[] = {1, 2, 3};
-    int len = sizeof(array) / sizeof(array[0]);
-    float max = -1;
+    //float array[] = { 1.0f, 2.0f, 3.0f, 4.0f };
+
+    float array[1000];
+
+    srand(time(NULL));
+
+    for (int i = 0; i < 1000; i++) {
+        array[i] = rand() % 1000 + 1;
+    }
+
+    float len = sizeof(array) / sizeof(array[0]);
+    float max = -1.0;
+
     for (int i = 0; i < len; i++) {
         if (array[i] > max) {
             max = array[i];
@@ -122,9 +133,11 @@ int main() {
     }
     float maxHeight = 0.8f;
     for (int i = 0; i < len; i++) {
-        array[i] = (float)array[i];
-        std::cout << array[i] << std::endl;
+        array[i] = static_cast<float>(array[i]);
     }
+
+
+
 
     // rendering
     while (!glfwWindowShouldClose(window))
@@ -145,12 +158,19 @@ int main() {
         glBindVertexArray(VAO);
 
         float maxh = 0.8f;
-        for (int i = 0; i < 3; i++) {
+        for (int i = 0; i < len; i++) {
 
+
+            float xtrans = i / len + 1 / len - 1.0f;
+            float ytrans = 0.0f;
             glm::mat4 trans = glm::mat4(1.0f);
-            trans = glm::scale(trans, glm::vec3(1/len, (array[i]/max) * maxHeight, 0));
-            std::cout << (array[i] / max) * maxHeight << std::endl;
-            trans = glm::translate(trans, glm::vec3(0.1f, 0, 0));
+            //trans = glm::translate(trans, glm::vec3(xtrans, ytrans, 0));
+            trans = glm::translate(trans, glm::vec3(-1.0f, -1.0f, 0));
+            trans = glm::translate(trans, glm::vec3(1 / (len), 0, 0));
+            trans = glm::translate(trans, glm::vec3(2 * i / len, 0, 0));
+            trans = glm::scale(trans, glm::vec3(1/len, 2 * (array[i] / max) * maxh, 0));
+            //std::cout << 1/len * i << std::endl;
+            //trans = glm::translate(trans, glm::vec3(1/len * i, 0, 0));
 
             unsigned int transformLocation = glGetUniformLocation(newShader.ID, "trans");
             glUniformMatrix4fv(transformLocation, 1, GL_FALSE, glm::value_ptr(trans));
@@ -210,6 +230,6 @@ void processInput(GLFWwindow* window)
 void cursor_position_callback(GLFWwindow* window, double xpos, double ypos)
 {
     std::cout << "Mouse moved to (" << xpos << ", " << ypos << ")" << std::endl;
-    posy = (float) ypos;
-    posx = (float) xpos;
+    posy = static_cast<float>(ypos);
+    posx = static_cast<float>(xpos);
 }
