@@ -115,12 +115,21 @@ int main() {
 
     //float array[] = { 1.0f, 2.0f, 3.0f, 4.0f };
 
+    int arrayLength = 1000;
+
     float array[1000];
 
     srand(time(NULL));
 
-    for (int i = 0; i < 1000; i++) {
-        array[i] = rand() % 1000 + 1;
+    for (int i = 0; i < arrayLength; i++) {
+        array[i] = static_cast<float>(i);
+    }
+
+    for (int i = arrayLength - 1; i > 0; i--) {
+        int j = rand() % i + 1;
+        float temp = array[i];
+        array[i] = array[j];
+        array[j] = temp;
     }
 
     float len = sizeof(array) / sizeof(array[0]);
