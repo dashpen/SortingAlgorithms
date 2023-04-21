@@ -4,9 +4,8 @@ out vec4 FragColor;
 
 in vec3 ourColor;
 
-uniform float offsetAgain;
-uniform float offsetAgainAgain;
+uniform float redShift;
 
 void main(){
-	FragColor = vec4(ourColor, 1.0);
+	FragColor = vec4(ourColor.x, ourColor.y * redShift, ourColor.z * redShift, 1.0);
 }

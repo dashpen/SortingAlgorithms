@@ -104,6 +104,7 @@ int main() {
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
 
+
     // Set the callback functions for mouse events
     //glfwSetMouseButtonCallback(window, mouse_button_callback);
     //glfwSetCursorPosCallback(window, cursor_position_callback);
@@ -158,8 +159,12 @@ int main() {
     double prevTime = glfwGetTime();
     int numFrames = 0;
 
-    float lenSize = 1 / len;
+    float inverseLen = 1 / len;
     float inverseMax = 1 / max;
+
+    int speedMult = 1;
+
+
 
     // rendering
     while (!glfwWindowShouldClose(window))
@@ -183,12 +188,11 @@ int main() {
         processInput(window);
 
         // rendering
-        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
         //glUseProgram(shaderProgram);
 
-        newShader.setFloat("offsetAgain", offsetAgain);
-        newShader.setFloat("offsetAgainAgain", offsetAgainAgain);
+        newShader.setFloat("redShift", 1.0f);
 
         glBindVertexArray(VAO);
 
@@ -201,26 +205,39 @@ int main() {
             Sleep(5);
         }
 
-        if (bubbleIter < len) {
-            if (bubbleJter < len - 1 - bubbleIter) {
-                if (array[bubbleJter] > array[bubbleJter + 1]) {
-                    float temp = array[bubbleJter];
-                    array[bubbleJter] = array[bubbleJter + 1];
-                    array[bubbleJter + 1] = temp;
+        int selectedValue = -1;
+
+        for (int i = 0; i < speedMult; i++) {
+            if (bubbleIter < len) {
+                if (bubbleJter < len - 1 - bubbleIter) {
+                    if (array[bubbleJter] > array[bubbleJter + 1]) {
+                        selectedValue = bubbleJter + 1;
+                        float temp = array[bubbleJter];
+                        array[bubbleJter] = array[bubbleJter + 1];
+                        array[bubbleJter + 1] = temp;
+                    }
+                    bubbleJter++;
                 }
-                bubbleJter++;
-            }
-            else {
-                bubbleJter = 0;
-                bubbleIter++;
+                else {
+                    bubbleJter = 0;
+                    bubbleIter++;
+                }
             }
         }
+
 
         float maxh = 1.0f;
         for (int i = 0; i < len; i++) {
             glm::mat4 trans = glm::mat4(1.0f);
-            trans = glm::translate(trans, glm::vec3(-1.0f + 1 * lenSize + 2 * i * lenSize, -1.0f, 0));
-            trans = glm::scale(trans, glm::vec3(lenSize, 2 * array[i] * inverseMax * maxh, 0));
+            trans = glm::translate(trans, glm::vec3(-1.0f + (1 * inverseLen) + (2 * i * inverseLen), -1.0f, 0));
+            trans = glm::scale(trans, glm::vec3(inverseLen, (2 * (array[i] * inverseMax)) * maxh, 0));
+
+            if (i == selectedValue) {
+                newShader.setFloat("redShift", 0.0f);
+            }
+            else {
+                newShader.setFloat("redShift", 1.0f);
+            }
 
             unsigned int transformLocation = glGetUniformLocation(newShader.ID, "trans");
             glUniformMatrix4fv(transformLocation, 1, GL_FALSE, glm::value_ptr(trans));
