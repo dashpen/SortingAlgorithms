@@ -26,6 +26,8 @@ void processInput(GLFWwindow* window);
 //}
 //
 //// Callback function for mouse movement events
+
+// array used in loop
 int arrayLength = 200;
 float array[200];
 
@@ -44,6 +46,7 @@ float posx, posy;
 float offsetAgain;
 float offsetAgainAgain;
 
+// time difference between frames in milliseconds
 double timeTarget = 0;
 
 int vheight = 600;
@@ -60,7 +63,7 @@ int main() {
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
 
-    GLFWwindow* window = glfwCreateWindow(vheight, vwidth, "AMONG US!", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(vwidth, vheight, "AMONG US!", NULL, NULL);
     if (window == NULL)
     {
         std::cout << "Failed to create GLFW window" << std::endl;
@@ -77,7 +80,7 @@ int main() {
         return -1;
     }
 
-    glViewport(0, 0, vheight, vwidth);
+    glViewport(0, 0, vwidth, vheight);
 
     Shader newShader("shader.vert", "shader.frag");
     float vertices[] = {
@@ -251,6 +254,7 @@ int main() {
         insertI = insI;
         insertJ = insJ;
 
+        //float maxh = static_cast<float>(vwidth)/static_cast<float>(vheight);
         float maxh = 1.0f;
         for (int i = 0; i < len; i++) {
             glm::mat4 trans = glm::mat4(1.0f);
