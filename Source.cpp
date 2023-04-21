@@ -176,7 +176,7 @@ int main() {
         if (deltaTime >= 1) {
             double milli = deltaTime * 1000 / static_cast<double>(numFrames);
             std::string ms = std::to_string(milli);
-            std::string fps = std::to_string(1000.0 / milli);
+            std::string fps = std::to_string(numFrames/deltaTime);
             std::string newTitle = "AMONG US! || Milliseconds: " + ms + " Frames Per Second: " + fps;
             glfwSetWindowTitle(window, newTitle.c_str());
             numFrames = 0;
@@ -223,6 +223,7 @@ int main() {
                     bubbleIter++;
                 }
             }
+            //Sleep(100);
         }
 
 
