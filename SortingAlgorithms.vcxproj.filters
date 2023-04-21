@@ -18,7 +18,7 @@
     <ClCompile Include="Source.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\Users\Dash\Downloads\glad.c">
+    <ClCompile Include="..\..\..\..\..\OpenGL\glad.c">
       <Filter>Resource Files</Filter>
     </ClCompile>
   </ItemGroup>

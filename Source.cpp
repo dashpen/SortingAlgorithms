@@ -26,11 +26,16 @@ void processInput(GLFWwindow* window);
 //}
 //
 //// Callback function for mouse movement events
-int arrayLength = 300;
-float array[300];
+int arrayLength = 200;
+float array[200];
+
 int randIter = 0;
-int bubbleIter = 0;
-int bubbleJter = 0;
+
+int bubbleIter = arrayLength + 1;
+int bubbleJter = arrayLength + 1;
+
+int insertI = arrayLength + 1;
+int insertJ = arrayLength + 1;
 
 void cursor_position_callback(GLFWwindow* window, double xpos, double ypos);
 
@@ -38,6 +43,8 @@ float posx, posy;
 
 float offsetAgain;
 float offsetAgainAgain;
+
+double timeTarget = 0;
 
 int vheight = 600;
 int vwidth = 600;
@@ -164,8 +171,6 @@ int main() {
 
     int speedMult = 1;
 
-
-
     // rendering
     while (!glfwWindowShouldClose(window))
     {
@@ -173,15 +178,16 @@ int main() {
         double curTime = glfwGetTime();
         double deltaTime = curTime - prevTime;
         numFrames++;
-        if (deltaTime >= 1) {
-            double milli = deltaTime * 1000 / static_cast<double>(numFrames);
+        if (deltaTime >= 0.5) {
+            double milli = deltaTime * 500 / static_cast<double>(numFrames);
             std::string ms = std::to_string(milli);
             std::string fps = std::to_string(numFrames/deltaTime);
-            std::string newTitle = "AMONG US! || Milliseconds: " + ms + " Frames Per Second: " + fps;
+            std::string newTitle = "AMONG US! || Milliseconds: " + ms + " FPS: " + fps;
             glfwSetWindowTitle(window, newTitle.c_str());
             numFrames = 0;
             prevTime = curTime;
         }
+        double startTime = glfwGetTime();
 
 
         // input
@@ -196,7 +202,7 @@ int main() {
 
         glBindVertexArray(VAO);
 
-        if (randIter < (len - 1)) {
+        if (randIter <= (len - 1)) {
             int j = rand() % (randIter + 1);
             float temp = array[randIter];
             array[randIter] = array[j];
@@ -223,9 +229,27 @@ int main() {
                     bubbleIter++;
                 }
             }
-            //Sleep(100);
         }
 
+        int insI = insertI;
+        int insJ = insertJ;
+
+        if (insertI < len + 1) {
+            if (array[insJ] < array[insJ - 1]) {
+                selectedValue = insJ;
+                float temp = array[insJ];
+                array[insJ] = array[insJ - 1];
+                array[insJ - 1] = temp;
+                insJ--;
+            }
+            else if (insJ == 0 || array[insJ] > array[insJ - 1]) {
+                insJ = insI;
+                insI++;
+            }
+        }
+
+        insertI = insI;
+        insertJ = insJ;
 
         float maxh = 1.0f;
         for (int i = 0; i < len; i++) {
@@ -245,7 +269,11 @@ int main() {
             glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
         }
 
-        //glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+        double endTime = glfwGetTime();
+        double diffTime = endTime - startTime;
+        if (diffTime * 1000 < timeTarget) {
+            Sleep(timeTarget - (diffTime * 1000));
+        }
 
         // check and call events and swap the buffers
         glfwSwapBuffers(window);
@@ -320,6 +348,10 @@ void processInput(GLFWwindow* window)
     if (glfwGetKey(window, GLFW_KEY_B) == GLFW_PRESS && glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
         bubbleIter = 0;
         bubbleJter = 0;
+    }
+    if (glfwGetKey(window, GLFW_KEY_I) == GLFW_PRESS && glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+        insertI = 1;
+        insertJ = 0;
     }
 }
 
