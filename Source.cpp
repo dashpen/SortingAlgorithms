@@ -5,9 +5,12 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <iostream>
+#include <stdlib.h>
+#include <windows.h>
 #include <time.h>
 #include "Shader.h"
 
+void setArray(float* array[]);
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow* window);
 
@@ -23,6 +26,12 @@ void processInput(GLFWwindow* window);
 //}
 //
 //// Callback function for mouse movement events
+
+float array[100];
+int randIter = 0;
+int bubbleIter = 0;
+int bubbleJter = 0;
+
 void cursor_position_callback(GLFWwindow* window, double xpos, double ypos);
 
 float posx, posy;
@@ -66,10 +75,10 @@ int main() {
     Shader newShader("shader.vert", "shader.frag");
     float vertices[] = {
         // positions          // colors           
-         1.0f,  1.0f, 0.0f,   1.0f, 0.0f, 0.0f,   // top right
-         1.0f,  -1.0f, 0.0f,   0.0f, 1.0f, 0.0f,  // bottom right
-         -1.0f,  -1.0f, 0.0f,   0.0f, 0.0f, 1.0f, // bottom left
-         -1.0f,  1.0f, 0.0f,   1.0f, 1.0f, 0.0f,  // top left 
+         1.0f,  1.0f, 0.0f,   1.0f, 1.0f, 1.0f,   // top right
+         1.0f,  -1.0f, 0.0f,   1.0f, 1.0f, 1.0f,  // bottom right
+         -1.0f,  -1.0f, 0.0f,   1.0f, 1.0f, 1.0f, // bottom left
+         -1.0f,  1.0f, 0.0f,   1.0f, 1.0f, 1.0f,  // top left 
     };
     unsigned int indices[] = {
         0, 1, 3, // first triangle
@@ -115,21 +124,12 @@ int main() {
 
     //float array[] = { 1.0f, 2.0f, 3.0f, 4.0f };
 
-    int arrayLength = 1000;
-
-    float array[1000];
+    int arrayLength = 100;
 
     srand(time(NULL));
 
     for (int i = 0; i < arrayLength; i++) {
         array[i] = static_cast<float>(i);
-    }
-
-    for (int i = arrayLength - 1; i > 0; i--) {
-        int j = rand() % i + 1;
-        float temp = array[i];
-        array[i] = array[j];
-        array[j] = temp;
     }
 
     float len = sizeof(array) / sizeof(array[0]);
@@ -141,12 +141,20 @@ int main() {
         }
     }
     float maxHeight = 0.8f;
+
     for (int i = 0; i < len; i++) {
         array[i] = static_cast<float>(array[i]);
     }
 
 
-
+    for (int i = arrayLength - 1; i > 0; i--) {
+        int j = rand() % i + 1;
+        float temp = array[i];
+        array[i] = array[j];
+        array[j] = temp;
+    }
+     
+    randIter = static_cast<int>(len);
 
     // rendering
     while (!glfwWindowShouldClose(window))
@@ -166,20 +174,37 @@ int main() {
 
         glBindVertexArray(VAO);
 
-        float maxh = 0.8f;
+        if (randIter < len - 1) {
+            int j = rand() % (randIter + 1);
+            float temp = array[randIter];
+            array[randIter] = array[j];
+            array[j] = temp;
+            randIter++;
+            Sleep(5);
+        }
+        if (bubbleIter < len) {
+            if (bubbleJter < len - 1 - bubbleIter) {
+                if (array[bubbleJter] > array[bubbleJter + 1]) {
+                    float temp = array[bubbleJter];
+                    array[bubbleJter] = array[bubbleJter + 1];
+                    array[bubbleJter + 1] = temp;
+                }
+                bubbleJter++;
+            }
+            else {
+                bubbleJter = 0;
+                bubbleIter++;
+
+            }
+        }
+
+        float maxh = 1.0f;
         for (int i = 0; i < len; i++) {
-
-
-            float xtrans = i / len + 1 / len - 1.0f;
-            float ytrans = 0.0f;
             glm::mat4 trans = glm::mat4(1.0f);
-            //trans = glm::translate(trans, glm::vec3(xtrans, ytrans, 0));
             trans = glm::translate(trans, glm::vec3(-1.0f, -1.0f, 0));
             trans = glm::translate(trans, glm::vec3(1 / (len), 0, 0));
             trans = glm::translate(trans, glm::vec3(2 * i / len, 0, 0));
             trans = glm::scale(trans, glm::vec3(1/len, 2 * (array[i] / max) * maxh, 0));
-            //std::cout << 1/len * i << std::endl;
-            //trans = glm::translate(trans, glm::vec3(1/len * i, 0, 0));
 
             unsigned int transformLocation = glGetUniformLocation(newShader.ID, "trans");
             glUniformMatrix4fv(transformLocation, 1, GL_FALSE, glm::value_ptr(trans));
@@ -199,6 +224,20 @@ int main() {
 
     glfwTerminate();
     return 0;
+}
+
+void setArray(float* array[]) {
+    int arrayLength = sizeof(*array) / sizeof(*array[0]);
+    for (int i = 0; i < arrayLength; i++) {
+        *array[i] = static_cast<float>(i);
+    }
+}
+
+void resetArray() {
+    int arrayLength = sizeof(array) / sizeof(array[0]);
+    for (int i = 0; i < arrayLength; i++) {
+        array[i] = static_cast<float>(i);
+    }
 }
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
@@ -233,6 +272,20 @@ void processInput(GLFWwindow* window)
     }
     if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS) {
         offsetAgainAgain -= 0.0001f;
+    }
+    if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS) {
+        offsetAgainAgain -= 0.0001f;
+    }
+
+    if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS) {
+        randIter = 0;
+    }
+    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
+        resetArray();
+    }
+    if (glfwGetKey(window, GLFW_KEY_B) == GLFW_PRESS && glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+        bubbleIter = 0;
+        bubbleJter = 0;
     }
 }
 

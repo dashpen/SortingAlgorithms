@@ -8,5 +8,5 @@ uniform float offsetAgain;
 uniform float offsetAgainAgain;
 
 void main(){
-	FragColor = vec4(1.0f, 1.0f, 1.0f, 1.0);
+	FragColor = vec4(ourColor, 1.0);
 }
