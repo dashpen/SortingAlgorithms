@@ -26,8 +26,8 @@ void processInput(GLFWwindow* window);
 //}
 //
 //// Callback function for mouse movement events
-
-float array[100];
+int arrayLength = 300;
+float array[300];
 int randIter = 0;
 int bubbleIter = 0;
 int bubbleJter = 0;
@@ -124,7 +124,6 @@ int main() {
 
     //float array[] = { 1.0f, 2.0f, 3.0f, 4.0f };
 
-    int arrayLength = 100;
 
     srand(time(NULL));
 
@@ -156,11 +155,30 @@ int main() {
      
     randIter = static_cast<int>(len);
 
+    double prevTime = glfwGetTime();
+    int numFrames = 0;
+
+    float lenSize = 1 / len;
+    float inverseMax = 1 / max;
+
     // rendering
     while (!glfwWindowShouldClose(window))
     {
-        int windowWidth, windowHeight;
-        glfwGetWindowSize(window, &windowWidth, &windowHeight);
+        // fps calculator
+        double curTime = glfwGetTime();
+        double deltaTime = curTime - prevTime;
+        numFrames++;
+        if (deltaTime >= 1) {
+            double milli = deltaTime * 1000 / static_cast<double>(numFrames);
+            std::string ms = std::to_string(milli);
+            std::string fps = std::to_string(1000.0 / milli);
+            std::string newTitle = "AMONG US! || Milliseconds: " + ms + " Frames Per Second: " + fps;
+            glfwSetWindowTitle(window, newTitle.c_str());
+            numFrames = 0;
+            prevTime = curTime;
+        }
+
+
         // input
         processInput(window);
 
@@ -174,7 +192,7 @@ int main() {
 
         glBindVertexArray(VAO);
 
-        if (randIter < len - 1) {
+        if (randIter < (len - 1)) {
             int j = rand() % (randIter + 1);
             float temp = array[randIter];
             array[randIter] = array[j];
@@ -182,6 +200,7 @@ int main() {
             randIter++;
             Sleep(5);
         }
+
         if (bubbleIter < len) {
             if (bubbleJter < len - 1 - bubbleIter) {
                 if (array[bubbleJter] > array[bubbleJter + 1]) {
@@ -194,17 +213,14 @@ int main() {
             else {
                 bubbleJter = 0;
                 bubbleIter++;
-
             }
         }
 
         float maxh = 1.0f;
         for (int i = 0; i < len; i++) {
             glm::mat4 trans = glm::mat4(1.0f);
-            trans = glm::translate(trans, glm::vec3(-1.0f, -1.0f, 0));
-            trans = glm::translate(trans, glm::vec3(1 / (len), 0, 0));
-            trans = glm::translate(trans, glm::vec3(2 * i / len, 0, 0));
-            trans = glm::scale(trans, glm::vec3(1/len, 2 * (array[i] / max) * maxh, 0));
+            trans = glm::translate(trans, glm::vec3(-1.0f + 1 * lenSize + 2 * i * lenSize, -1.0f, 0));
+            trans = glm::scale(trans, glm::vec3(lenSize, 2 * array[i] * inverseMax * maxh, 0));
 
             unsigned int transformLocation = glGetUniformLocation(newShader.ID, "trans");
             glUniformMatrix4fv(transformLocation, 1, GL_FALSE, glm::value_ptr(trans));
