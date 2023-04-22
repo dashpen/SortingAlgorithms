@@ -137,7 +137,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\..\..\OpenGL\glad.c" />
+    <ClCompile Include="glad.c" />
     <ClCompile Include="Source.cpp" />
   </ItemGroup>
   <ItemGroup>
