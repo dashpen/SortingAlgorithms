@@ -33,7 +33,7 @@ void processInput(GLFWwindow* window);
 //// Callback function for mouse movement events
 
 // array used in loop
-const int arrayLength = 300;
+const int arrayLength = 600;
 float array[arrayLength];
 
 int randIter = 0;
@@ -44,6 +44,8 @@ int bubbleJter = arrayLength + 1;
 int insertI = arrayLength + 1;
 int insertJ = arrayLength + 1;
 
+int selectionI = arrayLength + 1;
+
 void cursor_position_callback(GLFWwindow* window, double xpos, double ypos);
 
 float posx, posy;
@@ -52,7 +54,7 @@ float offsetAgain;
 float offsetAgainAgain;
 
 // time difference between frames in milliseconds
-double timeTarget = 0.25;
+double timeTarget = 5;
 
 int vheight = 600;
 int vwidth = 600;
@@ -334,6 +336,32 @@ int main() {
             //alSourceStopv(10, alSources);
         }
 
+        int selI = selectionI;
+
+        if (selI < len - 1) {
+            int selMin = selI;
+
+            for (int j = selI + 1; j < len; j++) {
+
+                if (array[j] < array[selMin]) {
+
+                    selMin = j;
+                }
+            }
+
+            if (selI != selMin) {
+                selectedValue = selMin;
+                float temp = array[selMin];
+                array[selMin] = array[selI];
+                array[selI] = temp;
+            }
+
+        }
+        selI++;
+        selectionI = selI;
+
+        //std::cout << selI;
+
         insertI = insI;
         insertJ = insJ;
 
@@ -359,77 +387,24 @@ int main() {
             trans = glm::translate(trans, glm::vec3(-1.0f + (1 * inverseLen) + (2 * i * inverseLen), -1.0f, 0));
             trans = glm::scale(trans, glm::vec3(inverseLen, (2 * (array[i] * inverseMax)) * maxh, 0));
 
-            if (i == selectedValue) {
-                //newShader.setFloat("redShift", 0.0f);
-
-                //FREQUENCY = (5 * inverseLen * array[i] + 1) * 440.0f;
-                //const int SAMPLES = 2205;
-
-                //for (int i2 = 0; i2 < NUM_SAMPLES; i2++)
-                //{
-                //    float t = (float)i2 / SAMPLE_RATE;
-                //    float sine_wave = AMPLITUDE * sinf(TAU * FREQUENCY * t);
-                //    data[i2] = (short)(sine_wave * SHRT_MAX);
-                //}
-                //double mult = 1 / (1000 * array[i]);
-                //int period = SAMPLES * mult * 1000;
-                //short waveform[SAMPLES];
-                //for (int i3 = 0; i3 < SAMPLES; i3++) {
-                //    if ((i3 % period) < period / 2) {
-                //        waveform[i3] = 2500;
-                //    }
-                //    else {
-
-                //        waveform[i3] = -2500;
-
-                //    }
-                //}
-
-
-                //ALint numBuffersQueued = 0;
-                //alGetSourcei(source, AL_BUFFERS_QUEUED, &numBuffersQueued);
-                //while (numBuffersQueued--)
-                //{
-                //    alSourceUnqueueBuffers(source, 1, &buffer);
-                //}
-
-                //alBufferData(buffer, AL_FORMAT_MONO16, waveform, SAMPLES * sizeof(short), SAMPLE_RATE);
-                //alBufferData(buffer, AL_FORMAT_MONO16, data, NUM_SAMPLES * sizeof(short), SAMPLE_RATE);
-
-                //alSourceQueueBuffers(source, 1, &buffer);
-                //alSourcePause(source);
-
-                //alSourcef(source, AL_PITCH, array[i]/arrayLength);
-                //alSourcei(source, AL_BUFFER, buffer);
-                //alSourcePlay(source);
-                //std::this_thread::sleep_for(std::chrono::microseconds(500));
-
-
-
-
-                //int state;
-                //do {
-                //    alGetSourcei(source, AL_SOURCE_STATE, &state);
-                //} while (state == AL_PLAYING);
-
-
-            }
-            int check = false;
+            int redCheck = false;
             for (int k = 0; k < NUM_SOURCES; k++) {
                 if (i == selectedValues[0]) {
                     alSourcePause(alSources[sourceIndex]);
-                    alSourcef(alSources[sourceIndex], AL_PITCH, static_cast<float>((float)array[i] / (float)arrayLength) + 0.05f);
+                    alSourcef(alSources[sourceIndex], AL_PITCH, static_cast<float>((float)array[i] / (float)arrayLength));
                     alSourcePlay(alSources[sourceIndex]);
                 }
                 if (i == selectedValues[k]) {
 
                     newShader.setFloat("redShift", 0.0f);
-                    check = true;
+                    redCheck = true;
                 }
-             }
-            if (!check) {
+            }
+
+            if (!redCheck) {
                 newShader.setFloat("redShift", 1.0f);
             }
+
             //if (i == selectedValue) {
             //    newShader.setFloat("greenShift", 0.0f);
             //}
@@ -530,6 +505,9 @@ void processInput(GLFWwindow* window)
     if (glfwGetKey(window, GLFW_KEY_I) == GLFW_PRESS && glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
         insertI = 1;
         insertJ = 0;
+    }
+    if (glfwGetKey(window, GLFW_KEY_L) == GLFW_PRESS && glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+        selectionI = 0;
     }
 }
 
