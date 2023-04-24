@@ -33,7 +33,7 @@ void processInput(GLFWwindow* window);
 //// Callback function for mouse movement events
 
 // array used in loop
-const int arrayLength = 200;
+const int arrayLength = 300;
 float array[arrayLength];
 
 int randIter = 0;
@@ -52,10 +52,12 @@ float offsetAgain;
 float offsetAgainAgain;
 
 // time difference between frames in milliseconds
-double timeTarget = 0.5;
+double timeTarget = 0.25;
 
 int vheight = 600;
 int vwidth = 600;
+
+const int NUM_SOURCES = 10;
 
 int main() {
 
@@ -63,10 +65,10 @@ int main() {
     ALCcontext* context = alcCreateContext(device, NULL);
     alcMakeContextCurrent(context);
 
-    const int SAMPLE_RATE = 44100;
+    const int SAMPLE_RATE = 88200;
     const float DURATION = 0.5f; // seconds
     int NUM_SAMPLES = SAMPLE_RATE * DURATION;
-    const float AMPLITUDE = 0.5f;
+    const float AMPLITUDE = 0.25f;
     float FREQUENCY = 880.0f; // Hz
     const float TAU = 6.28318530718f; // 2 * pi
 
@@ -114,7 +116,6 @@ int main() {
     //    alGetSourcei(source2, AL_SOURCE_STATE, &state);
     //} while (state == AL_PLAYING);
 
-    const int NUM_SOURCES = 10;
     ALuint alSources[NUM_SOURCES];
     alGenSources(NUM_SOURCES, alSources);
 
@@ -288,12 +289,11 @@ int main() {
             array[randIter] = array[j];
             array[j] = temp;
             randIter++;
-            Sleep(5);
         }
 
         int selectedValue = -1;
 
-        for (int i = 0; i < speedMult; i++) {
+        //for (int i = 0; i < speedMult; i++) {
             if (bubbleIter < len) {
                 if (bubbleJter < len - 1 - bubbleIter) {
                     if (array[bubbleJter] > array[bubbleJter + 1]) {
@@ -309,7 +309,10 @@ int main() {
                     bubbleIter++;
                 }
             }
-        }
+            else {
+                //alSourceStopv(10, alSources);
+            }
+        //}
 
         int insI = insertI;
         int insJ = insertJ;
@@ -326,6 +329,9 @@ int main() {
                 insJ = insI;
                 insI++;
             }
+        }
+        else {
+            //alSourceStopv(10, alSources);
         }
 
         insertI = insI;
@@ -345,6 +351,9 @@ int main() {
 
         //float maxh = static_cast<float>(vwidth)/static_cast<float>(vheight);
         float maxh = 1.0f;
+
+        int sourceIndex = (numFrames % NUM_SOURCES);
+
         for (int i = 0; i < len; i++) {
             glm::mat4 trans = glm::mat4(1.0f);
             trans = glm::translate(trans, glm::vec3(-1.0f + (1 * inverseLen) + (2 * i * inverseLen), -1.0f, 0));
@@ -407,13 +416,12 @@ int main() {
             }
             int check = false;
             for (int k = 0; k < NUM_SOURCES; k++) {
+                if (i == selectedValues[0]) {
+                    alSourcePause(alSources[sourceIndex]);
+                    alSourcef(alSources[sourceIndex], AL_PITCH, static_cast<float>((float)array[i] / (float)arrayLength) + 0.05f);
+                    alSourcePlay(alSources[sourceIndex]);
+                }
                 if (i == selectedValues[k]) {
-
-                    alSourcePause(alSources[k]);
-
-                    alSourcef(alSources[k], AL_PITCH, array[i] / arrayLength);
-
-                    alSourcePlay(alSources[k]);
 
                     newShader.setFloat("redShift", 0.0f);
                     check = true;
