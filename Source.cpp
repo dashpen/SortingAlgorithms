@@ -13,6 +13,7 @@
 #include <thread>
 #include <openal/al.h>
 #include <openal/alc.h>
+#include <cmath>
 #include "Shader.h"
 
 //void setArray(float* array[]);
@@ -33,7 +34,7 @@ void processInput(GLFWwindow* window);
 //// Callback function for mouse movement events
 
 // array used in loop
-const int arrayLength = 600;
+const int arrayLength = 100;
 float array[arrayLength];
 
 int randIter = 0;
@@ -54,12 +55,12 @@ float offsetAgain;
 float offsetAgainAgain;
 
 // time difference between frames in milliseconds
-double timeTarget = 5;
+double timeTarget = 0.25;
 
 int vheight = 600;
 int vwidth = 600;
 
-const int NUM_SOURCES = 10;
+const int NUM_SOURCES = 20;
 
 int main() {
 
@@ -67,11 +68,11 @@ int main() {
     ALCcontext* context = alcCreateContext(device, NULL);
     alcMakeContextCurrent(context);
 
-    const int SAMPLE_RATE = 88200;
+    const int SAMPLE_RATE = 22050;
     const float DURATION = 0.5f; // seconds
     int NUM_SAMPLES = SAMPLE_RATE * DURATION;
     const float AMPLITUDE = 0.25f;
-    float FREQUENCY = 880.0f; // Hz
+    float FREQUENCY = 988.0f; // Hz
     const float TAU = 6.28318530718f; // 2 * pi
 
     ALuint buffer;
@@ -82,8 +83,17 @@ int main() {
     {
         float t = (float)i / SAMPLE_RATE;
         float sine_wave = AMPLITUDE * sinf(TAU * FREQUENCY * t);
-        data[i] = (short)(sine_wave * SHRT_MAX);
+        data[i] = (short)(sine_wave * SHRT_MAX/2);
     }
+    //for (int i = 0; i < NUM_SAMPLES; i++) {
+    //    if (i % 220 < 110) {
+    //        data[i] = 2500;
+    //    }
+    //    else {
+    //        data[i] = -2500;
+    //    }
+    //}
+
 
     alBufferData(buffer, AL_FORMAT_MONO16, data, NUM_SAMPLES * sizeof(short), SAMPLE_RATE);
 
@@ -344,7 +354,6 @@ int main() {
             for (int j = selI + 1; j < len; j++) {
 
                 if (array[j] < array[selMin]) {
-
                     selMin = j;
                 }
             }
@@ -364,6 +373,9 @@ int main() {
 
         insertI = insI;
         insertJ = insJ;
+
+
+
 
         for (int i = NUM_SOURCES - 1; i > 0; i--) {
             selectedValues[i] = selectedValues[i - 1];
@@ -390,8 +402,11 @@ int main() {
             int redCheck = false;
             for (int k = 0; k < NUM_SOURCES; k++) {
                 if (i == selectedValues[0]) {
+                    float arrayScale = (float)array[i] / (float)arrayLength;
+                    //float pitch = static_cast<float>(0.8f-(0.2f*pow((arrayScale-1.2), 2.0)));
+                    float pitch = static_cast<float>(0.8f * arrayScale);
                     alSourcePause(alSources[sourceIndex]);
-                    alSourcef(alSources[sourceIndex], AL_PITCH, static_cast<float>((float)array[i] / (float)arrayLength));
+                    alSourcef(alSources[sourceIndex], AL_PITCH, pitch);
                     alSourcePlay(alSources[sourceIndex]);
                 }
                 if (i == selectedValues[k]) {
@@ -417,7 +432,11 @@ int main() {
         double endTime = glfwGetTime();
         double diffTime = endTime - startTime;
         if (diffTime * 1000 < timeTarget) {
-            std::this_thread::sleep_for(std::chrono::microseconds(static_cast<int>((timeTarget - (diffTime * 1000)) * 1000)));
+            std::cout << "Time diff: " << diffTime << "\n";
+            int microsecs = static_cast<int>((timeTarget - (diffTime * 1000)) * 1000);
+            std::cout << "microsecs: " << microsecs << "\n";
+            std::cout << "time: " << glfwGetTime() << "\n";
+            std::this_thread::sleep_for(std::chrono::microseconds(microsecs));
         }
 
         // check and call events and swap the buffers
