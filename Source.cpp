@@ -6,11 +6,16 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <iostream>
 #include <stdlib.h>
+#include <stdio.h>
 #include <windows.h>
 #include <time.h>
+#include <chrono>
+#include <thread>
+#include <openal/al.h>
+#include <openal/alc.h>
 #include "Shader.h"
 
-void setArray(float* array[]);
+//void setArray(float* array[]);
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow* window);
 
@@ -28,8 +33,8 @@ void processInput(GLFWwindow* window);
 //// Callback function for mouse movement events
 
 // array used in loop
-int arrayLength = 200;
-float array[200];
+const int arrayLength = 200;
+float array[arrayLength];
 
 int randIter = 0;
 
@@ -47,12 +52,66 @@ float offsetAgain;
 float offsetAgainAgain;
 
 // time difference between frames in milliseconds
-double timeTarget = 0;
+double timeTarget = 0.5;
 
 int vheight = 600;
 int vwidth = 600;
 
 int main() {
+
+    ALCdevice* device = alcOpenDevice(NULL);
+    ALCcontext* context = alcCreateContext(device, NULL);
+    alcMakeContextCurrent(context);
+
+    const int SAMPLE_RATE = 44100;
+    const float DURATION = 0.5f; // seconds
+    int NUM_SAMPLES = SAMPLE_RATE * DURATION;
+    const float AMPLITUDE = 0.25f;
+    float FREQUENCY = 440.0f; // Hz
+    const float TAU = 6.28318530718f; // 2 * pi
+
+    ALuint buffer;
+    alGenBuffers(1, &buffer);
+
+    short* data = new short[NUM_SAMPLES];
+    for (int i = 0; i < NUM_SAMPLES; i++)
+    {
+        float t = (float)i / SAMPLE_RATE;
+        float sine_wave = AMPLITUDE * sinf(TAU * FREQUENCY * t);
+        data[i] = (short)(sine_wave * SHRT_MAX);
+    }
+
+    alBufferData(buffer, AL_FORMAT_MONO16, data, NUM_SAMPLES * sizeof(short), SAMPLE_RATE);
+
+    ALuint source;
+    alGenSources(1, &source);
+    alSourcei(source, AL_BUFFER, buffer);
+    //alSourcePlay(source);
+
+    ALuint buffer2;
+    alGenBuffers(1, &buffer2);
+    int NUM_SAMPLES2 = SAMPLE_RATE * 2.0f;
+
+    short* data2 = new short[NUM_SAMPLES2];
+    for (int i = 0; i < NUM_SAMPLES2; i++)
+    {
+        float t = (float)i / SAMPLE_RATE;
+        float sine_wave = AMPLITUDE * sinf(TAU * FREQUENCY * t);
+        data2[i] = (short)(sine_wave * SHRT_MAX);
+    }
+
+    alBufferData(buffer2, AL_FORMAT_MONO16, data2, NUM_SAMPLES2 * sizeof(short), SAMPLE_RATE);
+
+    ALuint source2;
+    alGenSources(1, &source2);
+    alSourcei(source2, AL_BUFFER, buffer2);
+    //alSourcePlay(source2);
+
+    //int state;
+    //do {
+    //    alGetSourcei(source2, AL_SOURCE_STATE, &state);
+    //} while (state == AL_PLAYING);
+
 
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -174,6 +233,13 @@ int main() {
 
     int speedMult = 1;
 
+    const int numSelVals = 5;
+    int selectedValues[numSelVals];
+    for (int i = 0; i < numSelVals; i++) {
+        selectedValues[i] = -1;
+    }
+
+
     // rendering
     while (!glfwWindowShouldClose(window))
     {
@@ -182,7 +248,7 @@ int main() {
         double deltaTime = curTime - prevTime;
         numFrames++;
         if (deltaTime >= 0.5) {
-            double milli = deltaTime * 500 / static_cast<double>(numFrames);
+            double milli = deltaTime * 1000 / static_cast<double>(numFrames);
             std::string ms = std::to_string(milli);
             std::string fps = std::to_string(numFrames/deltaTime);
             std::string newTitle = "AMONG US! || Milliseconds: " + ms + " FPS: " + fps;
@@ -202,6 +268,7 @@ int main() {
         //glUseProgram(shaderProgram);
 
         newShader.setFloat("redShift", 1.0f);
+        newShader.setFloat("greenShift", 1.0f);
 
         glBindVertexArray(VAO);
 
@@ -254,6 +321,23 @@ int main() {
         insertI = insI;
         insertJ = insJ;
 
+        for (int i = numSelVals - 1; i > 0; i--) {
+            selectedValues[i] = selectedValues[i - 1];
+        }
+        selectedValues[0] = selectedValue;
+
+        for (int i = 0; i < numSelVals; i++) {
+            std::cout << selectedValues[i] << ", ";
+        }
+        std::cout << '\n';
+
+        //selectedValues[9] = selectedValues[8];
+        //selectedValues[8] = selectedValues[7];
+        //...
+        //selectedValues[2] = selectedValues[1];
+        //selectedValues[1] = selectedValues[0];
+
+
         //float maxh = static_cast<float>(vwidth)/static_cast<float>(vheight);
         float maxh = 1.0f;
         for (int i = 0; i < len; i++) {
@@ -262,11 +346,77 @@ int main() {
             trans = glm::scale(trans, glm::vec3(inverseLen, (2 * (array[i] * inverseMax)) * maxh, 0));
 
             if (i == selectedValue) {
-                newShader.setFloat("redShift", 0.0f);
+                //newShader.setFloat("redShift", 0.0f);
+
+                FREQUENCY = (5 * inverseLen * array[i] + 1) * 440.0f;
+                const int SAMPLES = 2205;
+
+                //for (int i2 = 0; i2 < NUM_SAMPLES; i2++)
+                //{
+                //    float t = (float)i2 / SAMPLE_RATE;
+                //    float sine_wave = AMPLITUDE * sinf(TAU * FREQUENCY * t);
+                //    data[i2] = (short)(sine_wave * SHRT_MAX);
+                //}
+                double mult = 1 / (1000 * array[i]);
+                int period = SAMPLES * mult * 1000;
+                short waveform[SAMPLES];
+                for (int i3 = 0; i3 < SAMPLES; i3++) {
+                    if ((i3 % period) < period / 2) {
+                        waveform[i3] = 2500;
+                    }
+                    else {
+
+                        waveform[i3] = -2500;
+
+                    }
+                }
+
+
+                ALint numBuffersQueued = 0;
+                alGetSourcei(source, AL_BUFFERS_QUEUED, &numBuffersQueued);
+                while (numBuffersQueued--)
+                {
+                    alSourceUnqueueBuffers(source, 1, &buffer);
+                }
+
+                alBufferData(buffer, AL_FORMAT_MONO16, waveform, SAMPLES * sizeof(short), SAMPLE_RATE);
+                //alBufferData(buffer, AL_FORMAT_MONO16, data, NUM_SAMPLES * sizeof(short), SAMPLE_RATE);
+
+                //alSourceQueueBuffers(source, 1, &buffer);
+
+                alSourcei(source, AL_BUFFER, buffer);
+                alSourcePlay(source);
+
+
+
+                int state;
+                do {
+                    alGetSourcei(source, AL_SOURCE_STATE, &state);
+                } while (state == AL_PLAYING);
+
+
             }
-            else {
+            //else {
+            //    newShader.setFloat("redShift", 1.0f);
+            //}
+            //if (i - selectedValue <= 0 && i - selectedValue > -10) {
+            //    newShader.setFloat("redShift", 0.0f);
+            //} else {
+            //    newShader.setFloat("redShift", 1.0f);
+            //}
+            int check = false;
+            for (int k = 0; k < numSelVals; k++) {
+                if (i == selectedValues[k]) {
+                    newShader.setFloat("redShift", 0.0f);
+                    check = true;
+                }
+             }
+            if (!check) {
                 newShader.setFloat("redShift", 1.0f);
             }
+            //if (i == selectedValue) {
+            //    newShader.setFloat("greenShift", 0.0f);
+            //}
 
             unsigned int transformLocation = glGetUniformLocation(newShader.ID, "trans");
             glUniformMatrix4fv(transformLocation, 1, GL_FALSE, glm::value_ptr(trans));
@@ -276,7 +426,7 @@ int main() {
         double endTime = glfwGetTime();
         double diffTime = endTime - startTime;
         if (diffTime * 1000 < timeTarget) {
-            Sleep(timeTarget - (diffTime * 1000));
+            std::this_thread::sleep_for(std::chrono::microseconds(static_cast<int>((timeTarget - (diffTime * 1000)) * 1000)));
         }
 
         // check and call events and swap the buffers
@@ -288,16 +438,23 @@ int main() {
     glDeleteBuffers(1, &VBO);
     glDeleteBuffers(1, &EBO);
 
+    alDeleteSources(1, &source);
+    alDeleteBuffers(1, &buffer);
+    delete[] data;
+
+    alcDestroyContext(context);
+    alcCloseDevice(device);
+
     glfwTerminate();
     return 0;
 }
 
-void setArray(float* array[]) {
-    int arrayLength = sizeof(*array) / sizeof(*array[0]);
-    for (int i = 0; i < arrayLength; i++) {
-        *array[i] = static_cast<float>(i);
-    }
-}
+//void setArray(float* array[]) {
+//    int arrayLength = sizeof(*array) / sizeof(*array[0]);
+//    for (int i = 0; i < arrayLength; i++) {
+//        *array[i] = static_cast<float>(i);
+//    }
+//}
 
 void resetArray() {
     int arrayLength = sizeof(array) / sizeof(array[0]);
