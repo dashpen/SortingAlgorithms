@@ -66,8 +66,8 @@ int main() {
     const int SAMPLE_RATE = 44100;
     const float DURATION = 0.5f; // seconds
     int NUM_SAMPLES = SAMPLE_RATE * DURATION;
-    const float AMPLITUDE = 0.25f;
-    float FREQUENCY = 440.0f; // Hz
+    const float AMPLITUDE = 0.5f;
+    float FREQUENCY = 880.0f; // Hz
     const float TAU = 6.28318530718f; // 2 * pi
 
     ALuint buffer;
@@ -82,6 +82,8 @@ int main() {
     }
 
     alBufferData(buffer, AL_FORMAT_MONO16, data, NUM_SAMPLES * sizeof(short), SAMPLE_RATE);
+
+
 
     ALuint source;
     alGenSources(1, &source);
@@ -111,6 +113,15 @@ int main() {
     //do {
     //    alGetSourcei(source2, AL_SOURCE_STATE, &state);
     //} while (state == AL_PLAYING);
+
+    const int NUM_SOURCES = 10;
+    ALuint alSources[NUM_SOURCES];
+    alGenSources(NUM_SOURCES, alSources);
+
+    for (int i = 0; i < NUM_SOURCES; i++) {
+        alSourcei(alSources[i], AL_BUFFER, buffer);
+    }
+
 
 
     glfwInit();
@@ -233,9 +244,8 @@ int main() {
 
     int speedMult = 1;
 
-    const int numSelVals = 5;
-    int selectedValues[numSelVals];
-    for (int i = 0; i < numSelVals; i++) {
+    int selectedValues[NUM_SOURCES];
+    for (int i = 0; i < NUM_SOURCES; i++) {
         selectedValues[i] = -1;
     }
 
@@ -321,15 +331,10 @@ int main() {
         insertI = insI;
         insertJ = insJ;
 
-        for (int i = numSelVals - 1; i > 0; i--) {
+        for (int i = NUM_SOURCES - 1; i > 0; i--) {
             selectedValues[i] = selectedValues[i - 1];
         }
         selectedValues[0] = selectedValue;
-
-        for (int i = 0; i < numSelVals; i++) {
-            std::cout << selectedValues[i] << ", ";
-        }
-        std::cout << '\n';
 
         //selectedValues[9] = selectedValues[8];
         //selectedValues[8] = selectedValues[7];
@@ -348,8 +353,8 @@ int main() {
             if (i == selectedValue) {
                 //newShader.setFloat("redShift", 0.0f);
 
-                FREQUENCY = (5 * inverseLen * array[i] + 1) * 440.0f;
-                const int SAMPLES = 2205;
+                //FREQUENCY = (5 * inverseLen * array[i] + 1) * 440.0f;
+                //const int SAMPLES = 2205;
 
                 //for (int i2 = 0; i2 < NUM_SAMPLES; i2++)
                 //{
@@ -357,56 +362,59 @@ int main() {
                 //    float sine_wave = AMPLITUDE * sinf(TAU * FREQUENCY * t);
                 //    data[i2] = (short)(sine_wave * SHRT_MAX);
                 //}
-                double mult = 1 / (1000 * array[i]);
-                int period = SAMPLES * mult * 1000;
-                short waveform[SAMPLES];
-                for (int i3 = 0; i3 < SAMPLES; i3++) {
-                    if ((i3 % period) < period / 2) {
-                        waveform[i3] = 2500;
-                    }
-                    else {
+                //double mult = 1 / (1000 * array[i]);
+                //int period = SAMPLES * mult * 1000;
+                //short waveform[SAMPLES];
+                //for (int i3 = 0; i3 < SAMPLES; i3++) {
+                //    if ((i3 % period) < period / 2) {
+                //        waveform[i3] = 2500;
+                //    }
+                //    else {
 
-                        waveform[i3] = -2500;
+                //        waveform[i3] = -2500;
 
-                    }
-                }
+                //    }
+                //}
 
 
-                ALint numBuffersQueued = 0;
-                alGetSourcei(source, AL_BUFFERS_QUEUED, &numBuffersQueued);
-                while (numBuffersQueued--)
-                {
-                    alSourceUnqueueBuffers(source, 1, &buffer);
-                }
+                //ALint numBuffersQueued = 0;
+                //alGetSourcei(source, AL_BUFFERS_QUEUED, &numBuffersQueued);
+                //while (numBuffersQueued--)
+                //{
+                //    alSourceUnqueueBuffers(source, 1, &buffer);
+                //}
 
-                alBufferData(buffer, AL_FORMAT_MONO16, waveform, SAMPLES * sizeof(short), SAMPLE_RATE);
+                //alBufferData(buffer, AL_FORMAT_MONO16, waveform, SAMPLES * sizeof(short), SAMPLE_RATE);
                 //alBufferData(buffer, AL_FORMAT_MONO16, data, NUM_SAMPLES * sizeof(short), SAMPLE_RATE);
 
                 //alSourceQueueBuffers(source, 1, &buffer);
+                //alSourcePause(source);
 
-                alSourcei(source, AL_BUFFER, buffer);
-                alSourcePlay(source);
+                //alSourcef(source, AL_PITCH, array[i]/arrayLength);
+                //alSourcei(source, AL_BUFFER, buffer);
+                //alSourcePlay(source);
+                //std::this_thread::sleep_for(std::chrono::microseconds(500));
 
 
 
-                int state;
-                do {
-                    alGetSourcei(source, AL_SOURCE_STATE, &state);
-                } while (state == AL_PLAYING);
+
+                //int state;
+                //do {
+                //    alGetSourcei(source, AL_SOURCE_STATE, &state);
+                //} while (state == AL_PLAYING);
 
 
             }
-            //else {
-            //    newShader.setFloat("redShift", 1.0f);
-            //}
-            //if (i - selectedValue <= 0 && i - selectedValue > -10) {
-            //    newShader.setFloat("redShift", 0.0f);
-            //} else {
-            //    newShader.setFloat("redShift", 1.0f);
-            //}
             int check = false;
-            for (int k = 0; k < numSelVals; k++) {
+            for (int k = 0; k < NUM_SOURCES; k++) {
                 if (i == selectedValues[k]) {
+
+                    alSourcePause(alSources[k]);
+
+                    alSourcef(alSources[k], AL_PITCH, array[i] / arrayLength);
+
+                    alSourcePlay(alSources[k]);
+
                     newShader.setFloat("redShift", 0.0f);
                     check = true;
                 }
@@ -439,6 +447,7 @@ int main() {
     glDeleteBuffers(1, &EBO);
 
     alDeleteSources(1, &source);
+    alDeleteSources(10, alSources);
     alDeleteBuffers(1, &buffer);
     delete[] data;
 
