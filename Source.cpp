@@ -20,6 +20,11 @@
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow* window);
 
+//void mergeSort(int arr1[], const int start, const int end);
+void mergeSort(int arr1[], int n);
+//void splitMerge(int arr1[], int arr2[], int start, int end);
+void merge(int arr[], const int left, const int mid, const int right);
+
 //// Callback function for mouse button events
 //void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 //{
@@ -34,18 +39,25 @@ void processInput(GLFWwindow* window);
 //// Callback function for mouse movement events
 
 // array used in loop
-const int arrayLength = 100;
-float array[arrayLength];
+const int ARRAY_LENGTH = 100;
+int array[ARRAY_LENGTH];
 
 int randIter = 0;
 
-int bubbleIter = arrayLength + 1;
-int bubbleJter = arrayLength + 1;
+int initIter = ARRAY_LENGTH + 1;
 
-int insertI = arrayLength + 1;
-int insertJ = arrayLength + 1;
+int bubbleIter = initIter;
+int bubbleJter = initIter;
 
-int selectionI = arrayLength + 1;
+int insertI = initIter;
+int insertJ = initIter;
+
+int selectionI = initIter;
+int selectionJ = initIter;
+
+int sizeM = initIter;
+int leftM = initIter;
+
 
 void cursor_position_callback(GLFWwindow* window, double xpos, double ypos);
 
@@ -55,12 +67,12 @@ float offsetAgain;
 float offsetAgainAgain;
 
 // time difference between frames in milliseconds
-double timeTarget = 0.25;
+double timeTarget = 100;
 
 int vheight = 600;
 int vwidth = 600;
 
-const int NUM_SOURCES = 20;
+const int NUM_SOURCES = 10;
 
 int main() {
 
@@ -221,12 +233,12 @@ int main() {
 
     srand(time(NULL));
 
-    for (int i = 0; i < arrayLength; i++) {
-        array[i] = static_cast<float>(i);
+    for (int i = 0; i < ARRAY_LENGTH; i++) {
+        array[i] = i;
     }
 
     float len = sizeof(array) / sizeof(array[0]);
-    float max = -1.0;
+    float max = -1;
 
     for (int i = 0; i < len; i++) {
         if (array[i] > max) {
@@ -235,12 +247,12 @@ int main() {
     }
     float maxHeight = 0.8f;
 
-    for (int i = 0; i < len; i++) {
-        array[i] = static_cast<float>(array[i]);
-    }
+    //for (int i = 0; i < len; i++) {
+    //    array[i] = static_cast<float>(array[i]);
+    //}
 
 
-    for (int i = arrayLength - 1; i > 0; i--) {
+    for (int i = ARRAY_LENGTH - 1; i > 0; i--) {
         int j = rand() % i + 1;
         float temp = array[i];
         array[i] = array[j];
@@ -262,6 +274,21 @@ int main() {
         selectedValues[i] = -1;
     }
 
+    int tempArr[ARRAY_LENGTH];
+    for (int i = 0; i < ARRAY_LENGTH; i++) {
+        tempArr[i] = static_cast<int>(array[i]);
+        std::cout << tempArr[i] << ",";
+    }
+
+    std::cout << "\n";
+
+    mergeSort(tempArr, ARRAY_LENGTH);
+    //mergeSort(tempArr, 0 , ARRAY_LENGTH - 1);
+
+    for (int i = 0; i < ARRAY_LENGTH; i++) {
+        std::cout << tempArr[i] << ",";
+    }
+    std::cout << "\n";
 
     // rendering
     while (!glfwWindowShouldClose(window))
@@ -297,7 +324,7 @@ int main() {
 
         if (randIter <= (len - 1)) {
             int j = rand() % (randIter + 1);
-            float temp = array[randIter];
+            int temp = array[randIter];
             array[randIter] = array[j];
             array[j] = temp;
             randIter++;
@@ -310,7 +337,7 @@ int main() {
                 if (bubbleJter < len - 1 - bubbleIter) {
                     if (array[bubbleJter] > array[bubbleJter + 1]) {
                         selectedValue = bubbleJter + 1;
-                        float temp = array[bubbleJter];
+                        int temp = array[bubbleJter];
                         array[bubbleJter] = array[bubbleJter + 1];
                         array[bubbleJter + 1] = temp;
                     }
@@ -332,7 +359,7 @@ int main() {
         if (insertI < len + 1) {
             if (array[insJ] < array[insJ - 1]) {
                 selectedValue = insJ;
-                float temp = array[insJ];
+                int temp = array[insJ];
                 array[insJ] = array[insJ - 1];
                 array[insJ - 1] = temp;
                 insJ--;
@@ -346,35 +373,133 @@ int main() {
             //alSourceStopv(10, alSources);
         }
 
+        //int selI = selectionI;
+        //int selJ = selectionJ;
+
+        //if (selI < len - 1) {
+        //    int selMin = selI;
+        //    //for (int j = selI + 1; j < len; j++) {
+
+        //    //    if (array[j] < array[selMin]) {
+        //    //        selMin = j;
+        //    //    }
+        //    //}
+
+        //    if (selI != selMin) {
+        //        selectedValue = selMin;
+        //        int temp = array[selMin];
+        //        array[selMin] = array[selI];
+        //        array[selI] = temp;
+        //    }
+
+        //}
+        //selI++;
+        //selectionI = selI;
+        //selectionJ = selJ;
+        //std::cout << selI;
         int selI = selectionI;
+        int selJ = selectionJ;
 
         if (selI < len - 1) {
             int selMin = selI;
 
-            for (int j = selI + 1; j < len; j++) {
+            if (selJ < ARRAY_LENGTH) {
 
-                if (array[j] < array[selMin]) {
-                    selMin = j;
+                if (array[selJ] < array[selMin]) {
+                    selMin = selJ;
+                }
+                selectedValue = selJ;
+                selJ++;
+            }
+            else {
+                selI++;
+                selJ = selI + 1;
+                if (selI != selMin) {
+                    selectedValue = selMin;
+                    int temp = array[selMin];
+                    array[selMin] = array[selI];
+                    array[selI] = temp;
                 }
             }
+            //for (int j = selI + 1; j < len; j++) {
 
-            if (selI != selMin) {
-                selectedValue = selMin;
-                float temp = array[selMin];
-                array[selMin] = array[selI];
-                array[selI] = temp;
-            }
+            //    if (array[j] < array[selMin]) {
+            //        selMin = j;
+            //    }
+            //}
+
+
 
         }
-        selI++;
         selectionI = selI;
-
-        //std::cout << selI;
-
+        selectionJ = selJ;
         insertI = insI;
         insertJ = insJ;
 
+        if (sizeM <= ARRAY_LENGTH - 1) {
+            if (leftM < ARRAY_LENGTH - 1) {
+                int mid = min(leftM + sizeM - 1, ARRAY_LENGTH - 1);
+                int right = min(leftM + 2 * sizeM - 1, ARRAY_LENGTH - 1);
+                const int LLen = mid - leftM + 1;
+                const int RLen = right - mid;
 
+                int* L = new int[LLen];
+                int* R = new int[RLen];
+
+                for (int i = 0; i < LLen; i++) {
+                    L[i] = array[leftM + i];
+                }
+                for (int j = 0; j < RLen; j++) {
+                    R[j] = array[mid + 1 + j];
+                }
+
+                int LI = 0;
+                int RI = 0;
+                int arrI = leftM;
+
+                while (LI < LLen && RI < RLen) {
+                    if (L[LI] <= R[RI]) {
+                        array[arrI] = L[LI];
+                        LI++;
+                    }
+                    else {
+                        array[arrI] = R[RI];
+                        RI++;
+                    }
+                    arrI++;
+                }
+
+                while (LI < LLen) {
+                    array[arrI] = L[LI];
+                    LI++;
+                    arrI++;
+                }
+
+                while (RI < RLen) {
+                    array[arrI] = R[RI];
+                    RI++;
+                    arrI++;
+                }
+                delete[] L;
+                delete[] R;
+                leftM += 2 * sizeM;
+            }
+            else {
+                sizeM *= 2;
+                leftM = 0;
+            }
+        }
+        else {
+            timeTarget = 1;
+        }
+        //for (curr_size = 1; curr_size <= n - 1; curr_size *= 2) {
+        //    for (left = 0; left < n - 1; left += 2 * curr_size) {
+        //        int mid = min(left + curr_size - 1, n - 1);
+        //        int right = min(left + 2 * curr_size - 1, n - 1);
+
+        //        merge(array, left, mid, right);
+        //    }
+        //}
 
 
         for (int i = NUM_SOURCES - 1; i > 0; i--) {
@@ -402,8 +527,7 @@ int main() {
             int redCheck = false;
             for (int k = 0; k < NUM_SOURCES; k++) {
                 if (i == selectedValues[0]) {
-                    float arrayScale = (float)array[i] / (float)arrayLength;
-                    //float pitch = static_cast<float>(0.8f-(0.2f*pow((arrayScale-1.2), 2.0)));
+                    float arrayScale = (float)array[i] / (float)ARRAY_LENGTH;
                     float pitch = static_cast<float>(0.8f * arrayScale);
                     alSourcePause(alSources[sourceIndex]);
                     alSourcef(alSources[sourceIndex], AL_PITCH, pitch);
@@ -432,10 +556,7 @@ int main() {
         double endTime = glfwGetTime();
         double diffTime = endTime - startTime;
         if (diffTime * 1000 < timeTarget) {
-            std::cout << "Time diff: " << diffTime << "\n";
             int microsecs = static_cast<int>((timeTarget - (diffTime * 1000)) * 1000);
-            std::cout << "microsecs: " << microsecs << "\n";
-            std::cout << "time: " << glfwGetTime() << "\n";
             std::this_thread::sleep_for(std::chrono::microseconds(microsecs));
         }
 
@@ -461,18 +582,118 @@ int main() {
 }
 
 //void setArray(float* array[]) {
-//    int arrayLength = sizeof(*array) / sizeof(*array[0]);
-//    for (int i = 0; i < arrayLength; i++) {
+//    int ARRAY_LENGTH = sizeof(*array) / sizeof(*array[0]);
+//    for (int i = 0; i < ARRAY_LENGTH; i++) {
 //        *array[i] = static_cast<float>(i);
 //    }
 //}
 
 void resetArray() {
-    int arrayLength = sizeof(array) / sizeof(array[0]);
-    for (int i = 0; i < arrayLength; i++) {
-        array[i] = static_cast<float>(i);
+    int ARRAY_LENGTH = sizeof(array) / sizeof(array[0]);
+    for (int i = 0; i < ARRAY_LENGTH; i++) {
+        array[i] = i;
     }
 }
+
+//void mergeSort(int arr1[], int arr2[])
+//{
+//    int length = ARRAY_LENGTH;
+//    splitMerge(arr1, arr2, 0, length);
+//
+//}
+//void splitMerge(int arr1[], int arr2[], int start, int end)
+//{
+//    if (end - start <= 1) return;
+//    int mid = (start + end) / 2;
+//
+//    splitMerge(arr1, arr2, start, mid);
+//    splitMerge(arr1, arr2, mid+1, end);
+//
+//    merge(arr1, arr2, start, mid, end);
+//}
+//
+//void merge(int arr1[], int arr2[], int start, int mid, int end)
+//{
+//    int i = start;
+//    int j = mid;
+//    for (int k = start; k < end; k++) {
+//        if (i < mid && (j >= end || arr1[i] <= arr1[j])) {
+//            arr2[k] = arr1[i];
+//            i++;
+//        }
+//        else {
+//            arr2[k] = arr1[j];
+//            j++;
+//        }
+//    }
+//}
+
+void merge(int arr[], const int left, const int mid, const int right) {
+    const int LLen = mid - left + 1;
+    const int RLen = right - mid;
+
+    int* L = new int[LLen];
+    int* R = new int[RLen];
+
+    for (int i = 0; i < LLen; i++) {
+        L[i] = arr[left + i];
+    }
+    for (int j = 0; j < RLen; j++) {
+        R[j] = arr[mid + 1 + j];
+    }
+
+    int LI = 0;
+    int RI = 0;
+    int arrI = left;
+
+    while (LI < LLen && RI < RLen) {
+        if (L[LI] <= R[RI]) {
+            arr[arrI] = L[LI];
+            LI++;
+        }
+        else {
+            arr[arrI] = R[RI];
+            RI++;
+        }
+        arrI++;
+    }
+
+    while (LI < LLen) {
+        arr[arrI] = L[LI];
+        LI++;
+        arrI++;
+    }
+
+    while (RI < RLen) {
+        arr[arrI] = R[RI];
+        RI++;
+        arrI++;
+    }
+    delete[] L;
+    delete[] R;
+}
+
+void mergeSort(int arr[], int n) {
+    int curr_size;
+    int left;
+
+    for (curr_size = 1; curr_size <= n - 1; curr_size *= 2) {
+        for (left = 0; left < n - 1; left += 2 * curr_size) {
+            int mid = min(left + curr_size - 1, n - 1);
+            int right = min(left + 2 * curr_size - 1, n - 1);
+
+            merge(arr, left, mid, right);
+        }
+    }
+}
+
+//void mergeSort(int arr[], const int start, const int end) {
+//    if (start >= end) return;
+//    int mid = start + (end - start) / 2;
+//    mergeSort(arr, start, mid);
+//    mergeSort(arr, mid + 1, end);
+//    merge(arr, start, mid, end);
+//}
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
     glViewport(0, 0, width, height);
@@ -527,6 +748,12 @@ void processInput(GLFWwindow* window)
     }
     if (glfwGetKey(window, GLFW_KEY_L) == GLFW_PRESS && glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
         selectionI = 0;
+        selectionJ = 0;
+    }
+    if (glfwGetKey(window, GLFW_KEY_M) == GLFW_PRESS && glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+        sizeM = 1;
+        leftM = 0;
+        timeTarget = 100;
     }
 }
 
