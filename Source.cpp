@@ -16,32 +16,39 @@
 #include <cmath>
 #include "Shader.h"
 
-//void setArray(float* array[]);
-void framebuffer_size_callback(GLFWwindow* window, int width, int height);
-void processInput(GLFWwindow* window);
-
-//void mergeSort(int arr1[], const int start, const int end);
-void mergeSort(int arr1[], int n);
-//void splitMerge(int arr1[], int arr2[], int start, int end);
+void onFrameSizeChange(GLFWwindow* window, int width, int height);
+void checkKeys(GLFWwindow* window);
+void insertionSortStep(int* selectedValue);
+void selectionSortStep(int* selectedValue);
+void bubbleSortStep(int* selectedValue);
 void merge(int arr[], const int left, const int mid, const int right);
 
-//// Callback function for mouse button events
-//void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
-//{
-//    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
-//    {
-//        double xpos, ypos;
-//        glfwGetCursorPos(window, &xpos, &ypos);
-//        std::cout << "Left mouse button pressed at (" << xpos << ", " << ypos << ")" << std::endl;
-//    }
-//}
-//
-//// Callback function for mouse movement events
+// fragment shader code
+const char *fragShaderCode = "#version 330 core\n"
+"out vec4 FragColor; \n"
+"in vec3 ourColor; \n"
+"uniform float redShift; \n"
+"void main() {\n"
+"FragColor = vec4(ourColor.x, ourColor.y * redShift, ourColor.z * redShift, 1.0); \n"
+"}\0";
+
+// vertex shader code
+const char* vertShaderCode = "#version 330 core\n"
+"layout(location = 0) in vec3 aPos; \n"
+"layout(location = 1) in vec3 aColor; \n"
+"out vec3 ourColor; \n"
+"uniform mat4 trans; \n"
+"void main(){\n"
+"    gl_Position = trans * vec4(aPos, 1.0f); \n"
+"    ourColor = aColor; \n"
+"};\0";
+
 
 // array used in loop
-const int ARRAY_LENGTH = 100;
+const int ARRAY_LENGTH = 32;
 int array[ARRAY_LENGTH];
 
+// initializing iterators for while loop
 int randIter = 0;
 
 int initIter = ARRAY_LENGTH + 1;
@@ -54,109 +61,28 @@ int insertJ = initIter;
 
 int selectionI = initIter;
 int selectionJ = initIter;
+int selMin = 0;
 
 int sizeM = initIter;
 int leftM = initIter;
 
-
-void cursor_position_callback(GLFWwindow* window, double xpos, double ypos);
-
-float posx, posy;
-
-float offsetAgain;
-float offsetAgainAgain;
-
 // time difference between frames in milliseconds
-double timeTarget = 100;
+double timeTargetBig = 500;
+double timeTargetSmall = 0.5;
+double timeTarget = timeTargetSmall;
 
 int vheight = 600;
 int vwidth = 600;
 
-const int NUM_SOURCES = 10;
+// max amount of red lines
+const int NUM_SOURCES = 2;
 
 int main() {
-
-    ALCdevice* device = alcOpenDevice(NULL);
-    ALCcontext* context = alcCreateContext(device, NULL);
-    alcMakeContextCurrent(context);
-
-    const int SAMPLE_RATE = 22050;
-    const float DURATION = 0.5f; // seconds
-    int NUM_SAMPLES = SAMPLE_RATE * DURATION;
-    const float AMPLITUDE = 0.25f;
-    float FREQUENCY = 988.0f; // Hz
-    const float TAU = 6.28318530718f; // 2 * pi
-
-    ALuint buffer;
-    alGenBuffers(1, &buffer);
-
-    short* data = new short[NUM_SAMPLES];
-    for (int i = 0; i < NUM_SAMPLES; i++)
-    {
-        float t = (float)i / SAMPLE_RATE;
-        float sine_wave = AMPLITUDE * sinf(TAU * FREQUENCY * t);
-        data[i] = (short)(sine_wave * SHRT_MAX/2);
-    }
-    //for (int i = 0; i < NUM_SAMPLES; i++) {
-    //    if (i % 220 < 110) {
-    //        data[i] = 2500;
-    //    }
-    //    else {
-    //        data[i] = -2500;
-    //    }
-    //}
-
-
-    alBufferData(buffer, AL_FORMAT_MONO16, data, NUM_SAMPLES * sizeof(short), SAMPLE_RATE);
-
-
-
-    ALuint source;
-    alGenSources(1, &source);
-    alSourcei(source, AL_BUFFER, buffer);
-    //alSourcePlay(source);
-
-    ALuint buffer2;
-    alGenBuffers(1, &buffer2);
-    int NUM_SAMPLES2 = SAMPLE_RATE * 2.0f;
-
-    short* data2 = new short[NUM_SAMPLES2];
-    for (int i = 0; i < NUM_SAMPLES2; i++)
-    {
-        float t = (float)i / SAMPLE_RATE;
-        float sine_wave = AMPLITUDE * sinf(TAU * FREQUENCY * t);
-        data2[i] = (short)(sine_wave * SHRT_MAX);
-    }
-
-    alBufferData(buffer2, AL_FORMAT_MONO16, data2, NUM_SAMPLES2 * sizeof(short), SAMPLE_RATE);
-
-    ALuint source2;
-    alGenSources(1, &source2);
-    alSourcei(source2, AL_BUFFER, buffer2);
-    //alSourcePlay(source2);
-
-    //int state;
-    //do {
-    //    alGetSourcei(source2, AL_SOURCE_STATE, &state);
-    //} while (state == AL_PLAYING);
-
-    ALuint alSources[NUM_SOURCES];
-    alGenSources(NUM_SOURCES, alSources);
-
-    for (int i = 0; i < NUM_SOURCES; i++) {
-        alSourcei(alSources[i], AL_BUFFER, buffer);
-    }
-
-
 
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-
-#ifdef __APPLE__
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-#endif
 
     GLFWwindow* window = glfwCreateWindow(vwidth, vheight, "AMONG US!", NULL, NULL);
     if (window == NULL)
@@ -167,7 +93,7 @@ int main() {
     }
 
     glfwMakeContextCurrent(window);
-    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+    glfwSetFramebufferSizeCallback(window, onFrameSizeChange);
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
     {
@@ -177,18 +103,18 @@ int main() {
 
     glViewport(0, 0, vwidth, vheight);
 
-    Shader newShader("shader.vert", "shader.frag");
     float vertices[] = {
         // positions          // colors           
-         1.0f,  1.0f, 0.0f,   1.0f, 1.0f, 1.0f,   // top right
-         1.0f,  -1.0f, 0.0f,   1.0f, 1.0f, 1.0f,  // bottom right
-         -1.0f,  -1.0f, 0.0f,   1.0f, 1.0f, 1.0f, // bottom left
-         -1.0f,  1.0f, 0.0f,   1.0f, 1.0f, 1.0f,  // top left 
+         1.0f,  1.0f, 0.0f,  1.0f, 1.0f, 1.0f,   // top right
+         1.0f, -1.0f, 0.0f,  1.0f, 1.0f, 1.0f,   // bottom right
+        -1.0f, -1.0f, 0.0f,  1.0f, 1.0f, 1.0f,   // bottom left
+        -1.0f,  1.0f, 0.0f,  1.0f, 1.0f, 1.0f,   // top left 
     };
     unsigned int indices[] = {
         0, 1, 3, // first triangle
         1, 2, 3  // second triangle
     };
+
     unsigned int VBO, VAO, EBO;
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
@@ -209,28 +135,52 @@ int main() {
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
 
+    // shader 
 
-    // Set the callback functions for mouse events
-    //glfwSetMouseButtonCallback(window, mouse_button_callback);
-    //glfwSetCursorPosCallback(window, cursor_position_callback);
+    // compile shaders
+    unsigned int vertex, fragment;
+    int success;
+    char infoLog[512];
 
-    // wireframe mode
-    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    vertex = glCreateShader(GL_VERTEX_SHADER);
+    glShaderSource(vertex, 1, &vertShaderCode, NULL);
+    glCompileShader(vertex);
 
+    // errors
+    glGetShaderiv(vertex, GL_COMPILE_STATUS, &success);
+    if (!success) {
+        glGetShaderInfoLog(vertex, 512, NULL, infoLog);
+        std::cout << "Vertex Shader Compilation Failed\n" << infoLog << std::endl;
+    }
 
+    fragment = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(fragment, 1, &fragShaderCode, NULL);
+    glCompileShader(fragment);
 
-    newShader.use();
+    // errors
+    glGetShaderiv(fragment, GL_COMPILE_STATUS, &success);
+    if (!success) {
+        glGetShaderInfoLog(fragment, 512, NULL, infoLog);
+        std::cout << "Fragment Shader Compilation Failed\n" << infoLog << std::endl;
+    }
 
+    // shader program
+    unsigned int shaderProgram = glCreateProgram();
+    glAttachShader(shaderProgram, vertex);
+    glAttachShader(shaderProgram, fragment);
+    glLinkProgram(shaderProgram);
 
-    //glm::mat4 trans = glm::mat4(1.0f);
-    //trans = glm::scale(trans, glm::vec3(0.1f, 0.1f, 0));
+    glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
+    if (!success)
+    {
+        glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
+        std::cout << "Shader Linking Failed\n" << infoLog << std::endl;
+    }
 
-    //unsigned int transformLocation = glGetUniformLocation(newShader.ID, "trans");
-    //glUniformMatrix4fv(transformLocation, 1, GL_FALSE, glm::value_ptr(trans));
-
-    //float array[] = { 1.0f, 2.0f, 3.0f, 4.0f };
-
-
+    // delete shaders
+    glDeleteShader(vertex);
+    glDeleteShader(fragment);
+    
     srand(time(NULL));
 
     for (int i = 0; i < ARRAY_LENGTH; i++) {
@@ -245,13 +195,8 @@ int main() {
             max = array[i];
         }
     }
-    float maxHeight = 0.8f;
 
-    //for (int i = 0; i < len; i++) {
-    //    array[i] = static_cast<float>(array[i]);
-    //}
-
-
+    // shuffle array
     for (int i = ARRAY_LENGTH - 1; i > 0; i--) {
         int j = rand() % i + 1;
         float temp = array[i];
@@ -261,67 +206,34 @@ int main() {
      
     randIter = static_cast<int>(len);
 
-    double prevTime = glfwGetTime();
     int numFrames = 0;
 
     float inverseLen = 1 / len;
     float inverseMax = 1 / max;
 
-    int speedMult = 1;
-
     int selectedValues[NUM_SOURCES];
     for (int i = 0; i < NUM_SOURCES; i++) {
         selectedValues[i] = -1;
     }
-
-    int tempArr[ARRAY_LENGTH];
-    for (int i = 0; i < ARRAY_LENGTH; i++) {
-        tempArr[i] = static_cast<int>(array[i]);
-        std::cout << tempArr[i] << ",";
-    }
-
-    std::cout << "\n";
-
-    mergeSort(tempArr, ARRAY_LENGTH);
-    //mergeSort(tempArr, 0 , ARRAY_LENGTH - 1);
-
-    for (int i = 0; i < ARRAY_LENGTH; i++) {
-        std::cout << tempArr[i] << ",";
-    }
-    std::cout << "\n";
-
     // rendering
     while (!glfwWindowShouldClose(window))
     {
-        // fps calculator
-        double curTime = glfwGetTime();
-        double deltaTime = curTime - prevTime;
-        numFrames++;
-        if (deltaTime >= 0.5) {
-            double milli = deltaTime * 1000 / static_cast<double>(numFrames);
-            std::string ms = std::to_string(milli);
-            std::string fps = std::to_string(numFrames/deltaTime);
-            std::string newTitle = "AMONG US! || Milliseconds: " + ms + " FPS: " + fps;
-            glfwSetWindowTitle(window, newTitle.c_str());
-            numFrames = 0;
-            prevTime = curTime;
-        }
+        // for fps limiter (time target)
         double startTime = glfwGetTime();
 
-
         // input
-        processInput(window);
+        checkKeys(window);
 
         // rendering
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
-        //glUseProgram(shaderProgram);
+        glUseProgram(shaderProgram);
 
-        newShader.setFloat("redShift", 1.0f);
-        newShader.setFloat("greenShift", 1.0f);
+        glUniform1f(glGetUniformLocation(shaderProgram, "redShift"), 1.0f);
 
         glBindVertexArray(VAO);
 
+        // shuffling array
         if (randIter <= (len - 1)) {
             int j = rand() % (randIter + 1);
             int temp = array[randIter];
@@ -332,110 +244,16 @@ int main() {
 
         int selectedValue = -1;
 
-        //for (int i = 0; i < speedMult; i++) {
-            if (bubbleIter < len) {
-                if (bubbleJter < len - 1 - bubbleIter) {
-                    if (array[bubbleJter] > array[bubbleJter + 1]) {
-                        selectedValue = bubbleJter + 1;
-                        int temp = array[bubbleJter];
-                        array[bubbleJter] = array[bubbleJter + 1];
-                        array[bubbleJter + 1] = temp;
-                    }
-                    bubbleJter++;
-                }
-                else {
-                    bubbleJter = 0;
-                    bubbleIter++;
-                }
-            }
-            else {
-                //alSourceStopv(10, alSources);
-            }
-        //}
+        // bubble sort
+        bubbleSortStep(&selectedValue);
 
-        int insI = insertI;
-        int insJ = insertJ;
+        // insertion sort
+        insertionSortStep(&selectedValue);
 
-        if (insertI < len + 1) {
-            if (array[insJ] < array[insJ - 1]) {
-                selectedValue = insJ;
-                int temp = array[insJ];
-                array[insJ] = array[insJ - 1];
-                array[insJ - 1] = temp;
-                insJ--;
-            }
-            else if (insJ == 0 || array[insJ] > array[insJ - 1]) {
-                insJ = insI;
-                insI++;
-            }
-        }
-        else {
-            //alSourceStopv(10, alSources);
-        }
+        // selection sort
+        selectionSortStep(&selectedValue);
 
-        //int selI = selectionI;
-        //int selJ = selectionJ;
-
-        //if (selI < len - 1) {
-        //    int selMin = selI;
-        //    //for (int j = selI + 1; j < len; j++) {
-
-        //    //    if (array[j] < array[selMin]) {
-        //    //        selMin = j;
-        //    //    }
-        //    //}
-
-        //    if (selI != selMin) {
-        //        selectedValue = selMin;
-        //        int temp = array[selMin];
-        //        array[selMin] = array[selI];
-        //        array[selI] = temp;
-        //    }
-
-        //}
-        //selI++;
-        //selectionI = selI;
-        //selectionJ = selJ;
-        //std::cout << selI;
-        int selI = selectionI;
-        int selJ = selectionJ;
-
-        if (selI < len - 1) {
-            int selMin = selI;
-
-            if (selJ < ARRAY_LENGTH) {
-
-                if (array[selJ] < array[selMin]) {
-                    selMin = selJ;
-                }
-                selectedValue = selJ;
-                selJ++;
-            }
-            else {
-                selI++;
-                selJ = selI + 1;
-                if (selI != selMin) {
-                    selectedValue = selMin;
-                    int temp = array[selMin];
-                    array[selMin] = array[selI];
-                    array[selI] = temp;
-                }
-            }
-            //for (int j = selI + 1; j < len; j++) {
-
-            //    if (array[j] < array[selMin]) {
-            //        selMin = j;
-            //    }
-            //}
-
-
-
-        }
-        selectionI = selI;
-        selectionJ = selJ;
-        insertI = insI;
-        insertJ = insJ;
-
+        // merge sort visualization
         if (sizeM <= ARRAY_LENGTH - 1) {
             if (leftM < ARRAY_LENGTH - 1) {
                 int mid = min(leftM + sizeM - 1, ARRAY_LENGTH - 1);
@@ -489,19 +307,8 @@ int main() {
                 leftM = 0;
             }
         }
-        else {
-            timeTarget = 1;
-        }
-        //for (curr_size = 1; curr_size <= n - 1; curr_size *= 2) {
-        //    for (left = 0; left < n - 1; left += 2 * curr_size) {
-        //        int mid = min(left + curr_size - 1, n - 1);
-        //        int right = min(left + 2 * curr_size - 1, n - 1);
 
-        //        merge(array, left, mid, right);
-        //    }
-        //}
-
-
+        // shift selectedValues list 1 element over
         for (int i = NUM_SOURCES - 1; i > 0; i--) {
             selectedValues[i] = selectedValues[i - 1];
         }
@@ -513,46 +320,37 @@ int main() {
         //selectedValues[2] = selectedValues[1];
         //selectedValues[1] = selectedValues[0];
 
-
-        //float maxh = static_cast<float>(vwidth)/static_cast<float>(vheight);
+        // max height for 'pillars' as a percent of viewport (1.0f is the view height)
         float maxh = 1.0f;
 
-        int sourceIndex = (numFrames % NUM_SOURCES);
-
         for (int i = 0; i < len; i++) {
+            // identity matrix
             glm::mat4 trans = glm::mat4(1.0f);
+            // move block to correct position based on index
             trans = glm::translate(trans, glm::vec3(-1.0f + (1 * inverseLen) + (2 * i * inverseLen), -1.0f, 0));
+            // scale block to correct width and height based on value
             trans = glm::scale(trans, glm::vec3(inverseLen, (2 * (array[i] * inverseMax)) * maxh, 0));
 
+            // set values under selectedValues to red and white otherwise
             int redCheck = false;
             for (int k = 0; k < NUM_SOURCES; k++) {
-                if (i == selectedValues[0]) {
-                    float arrayScale = (float)array[i] / (float)ARRAY_LENGTH;
-                    float pitch = static_cast<float>(0.8f * arrayScale);
-                    alSourcePause(alSources[sourceIndex]);
-                    alSourcef(alSources[sourceIndex], AL_PITCH, pitch);
-                    alSourcePlay(alSources[sourceIndex]);
-                }
                 if (i == selectedValues[k]) {
 
-                    newShader.setFloat("redShift", 0.0f);
+                    glUniform1f(glGetUniformLocation(shaderProgram, "redShift"), 0.0f);
                     redCheck = true;
                 }
             }
 
             if (!redCheck) {
-                newShader.setFloat("redShift", 1.0f);
+                glUniform1f(glGetUniformLocation(shaderProgram, "redShift"), 1.0f);
             }
 
-            //if (i == selectedValue) {
-            //    newShader.setFloat("greenShift", 0.0f);
-            //}
-
-            unsigned int transformLocation = glGetUniformLocation(newShader.ID, "trans");
+            unsigned int transformLocation = glGetUniformLocation(shaderProgram, "trans");
             glUniformMatrix4fv(transformLocation, 1, GL_FALSE, glm::value_ptr(trans));
             glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
         }
 
+        // framerate setting based on timeTarget
         double endTime = glfwGetTime();
         double diffTime = endTime - startTime;
         if (diffTime * 1000 < timeTarget) {
@@ -569,64 +367,17 @@ int main() {
     glDeleteBuffers(1, &VBO);
     glDeleteBuffers(1, &EBO);
 
-    alDeleteSources(1, &source);
-    alDeleteSources(10, alSources);
-    alDeleteBuffers(1, &buffer);
-    delete[] data;
-
-    alcDestroyContext(context);
-    alcCloseDevice(device);
-
     glfwTerminate();
     return 0;
 }
 
-//void setArray(float* array[]) {
-//    int ARRAY_LENGTH = sizeof(*array) / sizeof(*array[0]);
-//    for (int i = 0; i < ARRAY_LENGTH; i++) {
-//        *array[i] = static_cast<float>(i);
-//    }
-//}
-
 void resetArray() {
-    int ARRAY_LENGTH = sizeof(array) / sizeof(array[0]);
     for (int i = 0; i < ARRAY_LENGTH; i++) {
         array[i] = i;
     }
 }
 
-//void mergeSort(int arr1[], int arr2[])
-//{
-//    int length = ARRAY_LENGTH;
-//    splitMerge(arr1, arr2, 0, length);
-//
-//}
-//void splitMerge(int arr1[], int arr2[], int start, int end)
-//{
-//    if (end - start <= 1) return;
-//    int mid = (start + end) / 2;
-//
-//    splitMerge(arr1, arr2, start, mid);
-//    splitMerge(arr1, arr2, mid+1, end);
-//
-//    merge(arr1, arr2, start, mid, end);
-//}
-//
-//void merge(int arr1[], int arr2[], int start, int mid, int end)
-//{
-//    int i = start;
-//    int j = mid;
-//    for (int k = start; k < end; k++) {
-//        if (i < mid && (j >= end || arr1[i] <= arr1[j])) {
-//            arr2[k] = arr1[i];
-//            i++;
-//        }
-//        else {
-//            arr2[k] = arr1[j];
-//            j++;
-//        }
-//    }
-//}
+
 
 void merge(int arr[], const int left, const int mid, const int right) {
     const int LLen = mid - left + 1;
@@ -635,6 +386,7 @@ void merge(int arr[], const int left, const int mid, const int right) {
     int* L = new int[LLen];
     int* R = new int[RLen];
 
+    // make left and right arrays
     for (int i = 0; i < LLen; i++) {
         L[i] = arr[left + i];
     }
@@ -673,93 +425,121 @@ void merge(int arr[], const int left, const int mid, const int right) {
     delete[] R;
 }
 
-void mergeSort(int arr[], int n) {
-    int curr_size;
-    int left;
-
-    for (curr_size = 1; curr_size <= n - 1; curr_size *= 2) {
-        for (left = 0; left < n - 1; left += 2 * curr_size) {
-            int mid = min(left + curr_size - 1, n - 1);
-            int right = min(left + 2 * curr_size - 1, n - 1);
-
-            merge(arr, left, mid, right);
+void bubbleSortStep(int* selectedValue)
+{
+    // bubble sort visualization
+    if (bubbleIter < ARRAY_LENGTH) {
+        if (bubbleJter < ARRAY_LENGTH - 1 - bubbleIter) {
+            if (array[bubbleJter] > array[bubbleJter + 1]) {
+                *selectedValue = bubbleJter + 1;
+                int temp = array[bubbleJter];
+                array[bubbleJter] = array[bubbleJter + 1];
+                array[bubbleJter + 1] = temp;
+            }
+            bubbleJter++;
+        }
+        else {
+            bubbleJter = 0;
+            bubbleIter++;
         }
     }
 }
 
-//void mergeSort(int arr[], const int start, const int end) {
-//    if (start >= end) return;
-//    int mid = start + (end - start) / 2;
-//    mergeSort(arr, start, mid);
-//    mergeSort(arr, mid + 1, end);
-//    merge(arr, start, mid, end);
-//}
+void selectionSortStep(int* selectedValue)
+{
+    int selI = selectionI;
+    int selJ = selectionJ;
 
-void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
+    // selection sort visualization
+    if (selI < ARRAY_LENGTH - 1) {
+        int selMin = selI;
+        for (int j = selI + 1; j < ARRAY_LENGTH; j++) {
+            if (array[j] < array[selMin]) {
+                selMin = j;
+            }
+        }
+
+        if (selI != selMin) {
+            *selectedValue = selMin;
+            int temp = array[selMin];
+            array[selMin] = array[selI];
+            array[selI] = temp;
+
+        }
+    }
+    selI++;
+    selectionI = selI;
+    selectionJ = selJ;
+}
+
+void insertionSortStep(int* selectedValue) {
+    // insertion sort visualization
+    if (insertI < ARRAY_LENGTH + 1) {
+        if (array[insertJ] < array[insertJ - 1]) {
+            *selectedValue = insertJ;
+            int temp = array[insertJ];
+            array[insertJ] = array[insertJ - 1];
+            array[insertJ - 1] = temp;
+            insertJ--;
+        }
+        else if (insertJ == 0 || array[insertJ] > array[insertJ - 1]) {
+            insertJ = insertI;
+            insertI++;
+        }
+    }
+}
+
+void onFrameSizeChange(GLFWwindow* window, int width, int height) {
     glViewport(0, 0, width, height);
 }
 
-void processInput(GLFWwindow* window)
+// checks which keys are pressed each frame
+void checkKeys(GLFWwindow* window)
 {
+    // closes window when escape is pressed
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
 
+    // fill mode
     if (glfwGetKey(window, GLFW_KEY_Z) == GLFW_PRESS) {
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     }
+    // wireframe mode
     if (glfwGetKey(window, GLFW_KEY_X) == GLFW_PRESS) {
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     }
-    if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) {
-        offsetAgain += 0.0001f;
-        if (offsetAgain > 1) {
-            offsetAgain = 1;
-        }
-    }
-    if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS) {
-        offsetAgain -= 0.0001f;
-        if (offsetAgain < 0) {
-            offsetAgain = 0;
-        }
-    }
-    if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS) {
-        offsetAgainAgain += 0.0001f;
-    }
-    if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS) {
-        offsetAgainAgain -= 0.0001f;
-    }
-    if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS) {
-        offsetAgainAgain -= 0.0001f;
-    }
 
+    // shuffle array
     if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS) {
         randIter = 0;
+        timeTarget = timeTargetSmall;
     }
+    // set array to sorted
     if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
         resetArray();
     }
+    // start bubble sort
     if (glfwGetKey(window, GLFW_KEY_B) == GLFW_PRESS && glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
         bubbleIter = 0;
         bubbleJter = 0;
+        timeTarget = timeTargetSmall;
     }
+    // start insertion sort
     if (glfwGetKey(window, GLFW_KEY_I) == GLFW_PRESS && glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
         insertI = 1;
         insertJ = 0;
+        timeTarget = timeTargetSmall;
     }
+    // start selection sort
     if (glfwGetKey(window, GLFW_KEY_L) == GLFW_PRESS && glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
         selectionI = 0;
         selectionJ = 0;
+        timeTarget = timeTargetBig;
     }
+    // start merge sort
     if (glfwGetKey(window, GLFW_KEY_M) == GLFW_PRESS && glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
         sizeM = 1;
         leftM = 0;
-        timeTarget = 100;
+        timeTarget = timeTargetBig;
     }
-}
-
-void cursor_position_callback(GLFWwindow* window, double xpos, double ypos)
-{
-    std::cout << "Mouse moved to (" << xpos << ", " << ypos << ")" << std::endl;
-    posy = static_cast<float>(ypos);
-    posx = static_cast<float>(xpos);
 }

@@ -5,8 +5,7 @@ out vec4 FragColor;
 in vec3 ourColor;
 
 uniform float redShift;
-uniform float greenShift;
 
 void main(){
-	FragColor = vec4(ourColor.x * greenShift, ourColor.y * redShift, ourColor.z * redShift * greenShift, 1.0);
+	FragColor = vec4(ourColor.x, ourColor.y * redShift, ourColor.z * redShift, 1.0);
 }
